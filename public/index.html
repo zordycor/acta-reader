@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+	<title>FBCV Acta Reader</title>
+</head>
+<body style="display: flex;flex-direction: column;align-items: center;padding:25px;text-align:center;">
+	<h2 style="margin-top:30px;"><a href="https://www.pdfforge.org/online/en/extract-text" target="_blank">Pulsa aquí</a> para convertir tu acta en un archivo de texto.</h2>
+	<h3>Una vez descargado el archivo, vuelve a esta página para subir el archivo y mostrar los datos.</h3>
+	<input type="file" id="inpFile" class="form-control" style="max-width:400px;margin-top:50px;">
+	<br>
+	<br>
+	<div style="width:95%;height:600px;font-size:16px;border:1px solid black;outline:none;overflow:auto;padding:25px;text-align:left" id="resultText">
+		<p style="color:darkgrey">- Obten los puntos anotados por cada jugador</p>
+		<p style="color:darkgrey">- Mejor visualización del tanteo por cuartos</p>
+		<p style="color:darkgrey">- Ganador del partido más visible</p>
+	</div>
+	<p style="color: darkgrey; font-size:12px">Ayudanos a mejorar esta herramienta aportando tus ideas <a href="mailto:zordycorak@gmail.com" target="_blank">escribiéndonos un mail</a>.</p>
+
+	<script>
+		const inpFile = document.getElementById("inpFile")
+		const resultText = document.getElementById("resultText")
+
+		let equipo1, equipo2, finalText = ''
+		let lastPointA, lastPointB = 0
+		const playersA = {}, pointsA = {}, playersB = {}, pointsB = {}
+
+		const formatResponse = (text => {
+			logTeamNames(text)
+			logTanteoFinal(text)
+			finalText += '<br>'
+			logCategoria(text)
+			logFecha(text)
+			finalText += '<br>'
+			logTanteo(text)
+			logJugadoresA(text)
+			logJugadoresB(text)
+			computePoints(text)
+
+			showPointsByTeam(text)
+
+			return text.trim();
+		})
+
+		inpFile.onchange = async () => {
+			finalText = ''
+			resultText.innerHTML = ''
+
+			const formData = new FormData()
+
+			formData.append('file', inpFile.files[0])
+
+			const response = await fetch('/extract-text', {
+				method: 'POST',
+				body: formData
+			})
+
+			const textResponse = await response.text()
+			const cleanResponse = await textResponse.replaceAll('X','')
+
+			formatResponse(cleanResponse)
+			resultText.innerHTML = finalText
+		}
+
+		const logTeamNames = text => {
+			const indexEquipo1 = text.indexOf("Equipo A ") + 9
+			const indexEquipo2 = text.indexOf(" Equipo B ") + 10
+			equipo1 = text.substring(indexEquipo1, text.indexOf(" Equipo B "))
+			equipo2 = text.substring(indexEquipo2, text.indexOf("Competición"))
+		}
+
+		const logCategoria = text => {
+			const indexCategoria = text.indexOf("Competición ") + 12
+			const categoria = text.substring(indexCategoria, text.indexOf("Fecha"))
+			finalText += `<h5>Categoría: ${categoria}</h5>`
+		}
+
+		const logFecha = text => {
+			const indexFecha = text.indexOf("Fecha ") + 6
+			const fecha = text.substring(indexFecha, text.indexOf("Hora"))
+			finalText += `<h5>Fecha: ${fecha}</h5>`
+		}
+
+		const logTanteo = text => {
+			const indexTanteo = text.indexOf("Tanteo Periodo 1") + 16
+			let tanteoA1 = text.substring(indexTanteo + 3, indexTanteo + 5)
+			let tanteoB1 = text.substring(indexTanteo + 8, indexTanteo + 10)
+			finalText += '<h5>Tanteo</h5>'
+			if(tanteoA1 > tanteoB1) {
+				tanteoA1 = boldString(tanteoA1)
+			} else {
+				tanteoB1 = boldString(tanteoB1)
+			}
+			finalText += `<h5 style="font-weight:400">1r cuarto: ${tanteoA1} - ${tanteoB1}</h5>`
+
+			let tanteoA2 = text.substring(indexTanteo + 15, indexTanteo + 17)
+			let tanteoB2 = text.substring(indexTanteo + 20, indexTanteo + 22)
+			if(tanteoA2 > tanteoB2) {
+				tanteoA2 = boldString(tanteoA2)
+			} else {
+				tanteoB2 = boldString(tanteoB2)
+			}
+			finalText += `<h5 style="font-weight:400">2º cuarto: ${tanteoA2} - ${tanteoB2}</h5>`
+
+			const indexTanteo2 = text.indexOf("Periodo 3") + 12
+
+			let tanteoA3 = text.substring(indexTanteo2, indexTanteo2 + 2)
+			let tanteoB3 = text.substring(indexTanteo2 + 5, indexTanteo2 + 7)
+			if(tanteoA3 > tanteoB3) {
+				tanteoA3 = boldString(tanteoA3)
+			} else {
+				tanteoB3 = boldString(tanteoB3)
+			}
+			finalText += `<h5 style="font-weight:400">3r cuarto: ${tanteoA3} - ${tanteoB3}</h5>`
+
+			let tanteoA4 = text.substring(indexTanteo2 + 12, indexTanteo2 + 14)
+			let tanteoB4 = text.substring(indexTanteo2 + 17, indexTanteo2 + 19)
+			if(tanteoA4 > tanteoB4) {
+				tanteoA4 = boldString(tanteoA4)
+			} else {
+				tanteoB4 = boldString(tanteoB4)
+			}
+			finalText += `<h5 style="font-weight:400">4º cuarto: ${tanteoA4} - ${tanteoB4}</h5>`
+
+			const indexTanteoE = text.indexOf("Periodo E") + 10
+
+			const tanteoAE = text.substring(indexTanteoE + 12, indexTanteoE + 14)
+			const tanteoBE = text.substring(indexTanteoE + 17, indexTanteoE + 19)
+			if(tanteoAE.match(/\d+/g)) {
+				if(tanteoAE > tanteoBE) {
+					tanteoAE = boldString(tanteoAE)
+				} else {
+					tanteoBE = boldString(tanteoBE)
+				}
+				finalText += `<h5 style="font-weight:400">Prórroga: ${tanteoAE} - ${tanteoBE}</h5>`
+			}
+		}
+
+		const logTanteoFinal = text => {
+			const indexTanteoA = text.indexOf("Tanteo Final Equipo A") + 22
+			const indexEndTanteoA = indexTanteoA + 2
+			const indexTanteoB = indexEndTanteoA + 10
+			const indexEndTanteo = indexTanteoB + 2
+
+			const tanteoA = text.substring(indexTanteoA, indexEndTanteoA)
+			const tanteoB = text.substring(indexTanteoB, indexEndTanteo)
+			let equipo1Bold = equipo1
+			let equipo2Bold = equipo2
+			if(tanteoA > tanteoB) {
+				equipo1Bold = boldString(equipo1)
+			} else {
+				equipo2Bold = boldString(equipo2)
+			}
+			finalText += `<h4>${equipo1Bold} ${tanteoA} - ${tanteoB} ${equipo2Bold}</h4>`
+		}
+
+		const logJugadoresA = text => {
+			const indexJugadores = text.indexOf("1 2 3 4 5") + 10
+			const listaJugadores = text.substring(indexJugadores, text.indexOf("Entrenador"))
+			const arrayJugadores = listaJugadores.split('\n')
+			const arrayJugadoresClean = arrayJugadores.filter(jug => jug.length)
+			const cleanJugadores = arrayJugadoresClean.forEach(line => {
+				const afterComa = line.substring(line.indexOf(','))
+				const numero = afterComa.match(/\d+/g)
+				const apellidos = line.substring(0, line.indexOf(','))
+				const cleanApellidos = apellidos.replace(/[0-9]/g, '')
+
+				pointsA[numero] = 0
+				playersA[numero] = cleanApellidos.trim()
+			})
+		}
+
+		const logJugadoresB = text => {
+			const actaSoloEquipoB = text.substring(text.indexOf("Entrenador") + 10)
+			const indexJugadores = actaSoloEquipoB.indexOf("1 2 3 4 5") + 10
+			const listaJugadores = actaSoloEquipoB.substring(indexJugadores, actaSoloEquipoB.indexOf("Entrenador"))
+			const arrayJugadores = listaJugadores.split('\n')
+			const arrayJugadoresClean = arrayJugadores.filter(jug => jug.length)
+			const cleanJugadores = arrayJugadoresClean.forEach(line => {
+				const afterComa = line.substring(line.indexOf(','))
+				const numero = afterComa.match(/\d+/g)
+				const apellidos = line.substring(0, line.indexOf(','))
+				const cleanApellidos = apellidos.replace(/[0-9]/g, '')
+
+				pointsB[numero] = 0
+				playersB[numero] = cleanApellidos.trim()
+			})
+		}
+
+		const computePoints = text => {
+			const start = text.indexOf('TANTEO ARRASTRADO')
+			const end = text.indexOf('Tanteo Final')
+			const pointsSection = text.substring(start + 22, end)
+			const pointsArray = pointsSection.split('\n')
+
+			const cleanArray = removeABRows(pointsArray)
+
+			cleanArray.forEach((line, index) => {
+				if(index === 160) {
+					return
+				}
+				const indexFind = line.split(' ').filter(number => number == (index+1))
+				let players = null
+				if(indexFind.length > 2) {
+					if(!line.indexOf((index+1))) {
+						players = line.replace(' ' + (index+1) + ' ' + (index+1), ',').split(',')
+					} else {
+						players = line.replace((index+1) + ' ' + (index+1) + ' ', ',').split(',')
+					}
+				} else {
+					players = line.replace((index+1) + ' ' + (index+1), ',').split(',')
+				}
+				const playerA = players[0].length ? players[0].trim() : null
+				const playerB = players[1].length ? players[1].trim() : null
+
+
+				if(playerA) {
+					if(!pointsA[playerA]) pointsA[playerA] = 0
+
+					pointsA[playerA] += parseInt(index) - lastPointA
+					lastPointA = parseInt(index)
+				}
+				if(playerB) {
+					if(!pointsB[playerB]) pointsB[playerB] = 0
+
+					pointsB[playerB] += parseInt(index) - lastPointB
+					lastPointB = parseInt(index)
+				}
+			})
+		}
+
+		const showPointsByTeam = text => {
+			finalText += '<br>'
+			finalText += `<h5>Anotación ${equipo1}</h5>`
+			finalText += '<br>'
+			const biggestAnotationA = biggestAnotation(pointsA)
+			const biggestAnotationB = biggestAnotation(pointsB)
+
+			Object.keys(pointsA).forEach(number => {
+				let pointsPlayer = pointsA[number]
+				if(pointsA[number] == biggestAnotationA) {
+					pointsPlayer = boldString(pointsPlayer.toString())
+				}
+				finalText += `<h6>${number} <span style="font-weight:400">${playersA[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
+			})
+
+			finalText += '<br>'
+			finalText += `<h5>Anotación ${equipo2}</h5>`
+			finalText += '<br>'
+
+			Object.keys(pointsB).forEach(number => {
+				let pointsPlayer = pointsB[number]
+				if(pointsB[number] == biggestAnotationB) {
+					pointsPlayer = boldString(pointsPlayer.toString())
+				}
+				finalText += `<h6>${number} <span style="font-weight:400">${playersB[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
+			})
+		}
+
+		const removeABRows = array => {
+			let i = 0;
+			while (i < array.length) {
+				if (array[i] === 'A B') {
+					array.splice(i, 1);
+				} else {
+					++i;
+				}
+			}
+			return array;
+		}
+
+		const boldString = str => str.replace(RegExp(str, 'g'), `<b>${str}</b>`);
+
+		const biggestAnotation = players => {
+			const max = Object.values(players)
+
+			return Math.max(...max)
+		}
+	</script>
+</body>
+</html>
