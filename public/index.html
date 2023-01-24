@@ -16,7 +16,7 @@
 	<label for="inpFile" style="max-width:600px;margin-top:50px;">Sube el archivo PDF del acta del partido para mostrar los datos:
 		<input type="file" id="inpFile" class="form-control" style="margin:25px 0 10px">
 	</label>
-	<p style="font-size:12px; color: darkgrey">Solo disponible para actas de categoría Junior y Senior</p>
+	<p style="font-size:12px; color: darkgrey">Solo disponible para actas de categoría Senior</p>
 	<br>
 	<br>
 	<div style="width:95%;height:600px;font-size:16px;border:1px solid black;outline:none;overflow:auto;padding:25px;text-align:left" id="resultText">
@@ -31,8 +31,8 @@
 		const resultText = document.getElementById("resultText")
 
 		let equipo1, equipo2, finalText = ''
-		let lastPointA, lastPointB = 0
-		const playersA = {}, pointsA = {}, playersB = {}, pointsB = {}
+		let lastPointA = 0, lastPointB = 0
+		let playersA = {}, pointsA = {}, playersB = {}, pointsB = {}
 
 		const formatResponse = (text => {
 			logTeamNames(text)
@@ -54,47 +54,59 @@
 		inpFile.onchange = async () => {
 			finalText = ''
 			resultText.innerHTML = ''
+			lastPointA = 0, lastPointB = 0
+			playersA = {}, pointsA = {}, playersB = {}, pointsB = {}
+
 			showLoading()
-			const fileUpload = await fetch(`https://api.pdf.co/v1/file/upload/get-presigned-url?name=${inpFile.files[0].name}&contentType=application/pdf`, {
-				method: 'GET',
-				headers: {
-					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
+
+			try {
+				const fileUpload = await fetch(`https://api.pdf.co/v1/file/upload/get-presigned-url?name=${inpFile.files[0].name}&contentType=application/pdf`, {
+					method: 'GET',
+					headers: {
+						'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
+					}
+				})
+				const fileUploadObject = await fileUpload.json()
+
+				const storeFile = await fetch(fileUploadObject.presignedUrl, {
+					method: 'PUT',
+					headers: {
+						'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
+					},
+					body: inpFile.files[0]
+				})
+
+				const requestBody = {
+					url: fileUploadObject.url,
+					name: 'Acta.txt'
 				}
-			})
-			const fileUploadObject = await fileUpload.json()
 
-			const storeFile = await fetch(fileUploadObject.presignedUrl, {
-				method: 'PUT',
-				headers: {
-					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
-				},
-				body: inpFile.files[0]
-			})
+				const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/text-simple', {
+					method: 'POST',
+					body: JSON.stringify(requestBody),
+					headers: {
+						'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1',
+						'Content-Type': 'application/json'
+					}
+				})
 
-			const requestBody = {
-				url: fileUploadObject.url,
-				name: 'Acta.txt'
+				const responseData = await response.json()
+				const responseFileURL = responseData.url
+				const textFile = await fetch(responseData.url)
+				const file = await textFile.blob()
+
+				const textResponse = await file.text()
+				const cleanResponse = await textResponse.replaceAll('X','')
+
+				formatResponse(cleanResponse)
+				resultText.innerHTML = finalText
+			} catch (error) {
+				resultText.innerHTML = `
+					<p style="background: indianred;color: darkred;border-radius: 20px;padding: 10px 30px;display: initial;margin-left: 34%;">
+						Ha ocurrido un error, inténtalo de nuevo más tarde.
+					</p>
+				`
 			}
-
-			const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/text-simple', {
-				method: 'POST',
-				body: JSON.stringify(requestBody),
-				headers: {
-					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1',
-					'Content-Type': 'application/json'
-				}
-			})
-
-			const responseData = await response.json()
-			const responseFileURL = responseData.url
-			const textFile = await fetch(responseData.url)
-			const file = await textFile.blob()
-
-			const textResponse = await file.text()
-			const cleanResponse = await textResponse.replaceAll('X','')
-
-			formatResponse(cleanResponse)
-			resultText.innerHTML = finalText
 			hideLoading()
 		}
 
@@ -119,8 +131,11 @@
 
 		const logTanteo = text => {
 			const indexTanteo = text.indexOf("Tanteo Periodo 1") + 16
-			let tanteoA1 = text.substring(indexTanteo + 3, indexTanteo + 5)
-			let tanteoB1 = text.substring(indexTanteo + 8, indexTanteo + 10)
+			const endTanteo = text.indexOf("Periodo 3")
+			const splitPeriodo1 = text.substring(indexTanteo, endTanteo).split(' ')
+			const periodoPoints1 = splitPeriodo1.filter(element => /^-?\d+\.?\d*$/.test(element))
+			let tanteoA1 = periodoPoints1[0]
+			let tanteoB1 = periodoPoints1[1]
 			finalText += '<h5>Tanteo</h5>'
 			if(tanteoA1 > tanteoB1) {
 				tanteoA1 = boldString(tanteoA1)
@@ -129,8 +144,8 @@
 			}
 			finalText += `<h5 style="font-weight:400">1r cuarto: ${tanteoA1} - ${tanteoB1}</h5>`
 
-			let tanteoA2 = text.substring(indexTanteo + 15, indexTanteo + 17)
-			let tanteoB2 = text.substring(indexTanteo + 20, indexTanteo + 22)
+			let tanteoA2 = periodoPoints1[3]
+			let tanteoB2 = periodoPoints1[4]
 			if(tanteoA2 > tanteoB2) {
 				tanteoA2 = boldString(tanteoA2)
 			} else {
@@ -138,10 +153,12 @@
 			}
 			finalText += `<h5 style="font-weight:400">2º cuarto: ${tanteoA2} - ${tanteoB2}</h5>`
 
-			const indexTanteo2 = text.indexOf("Periodo 3") + 12
-
-			let tanteoA3 = text.substring(indexTanteo2, indexTanteo2 + 2)
-			let tanteoB3 = text.substring(indexTanteo2 + 5, indexTanteo2 + 7)
+			const indexTanteo2 = text.indexOf("Periodo 3")
+			const endTanteo2 = text.indexOf("Periodo E")
+			const splitPeriodo2 = text.substring(indexTanteo2, endTanteo2).split(' ')
+			const periodoPoints2 = splitPeriodo2.filter(element => /^-?\d+\.?\d*$/.test(element))
+			let tanteoA3 = periodoPoints2[1]
+			let tanteoB3 = periodoPoints2[2]
 			if(tanteoA3 > tanteoB3) {
 				tanteoA3 = boldString(tanteoA3)
 			} else {
@@ -149,8 +166,8 @@
 			}
 			finalText += `<h5 style="font-weight:400">3r cuarto: ${tanteoA3} - ${tanteoB3}</h5>`
 
-			let tanteoA4 = text.substring(indexTanteo2 + 12, indexTanteo2 + 14)
-			let tanteoB4 = text.substring(indexTanteo2 + 17, indexTanteo2 + 19)
+			let tanteoA4 = periodoPoints2[4]
+			let tanteoB4 = periodoPoints2[5]
 			if(tanteoA4 > tanteoB4) {
 				tanteoA4 = boldString(tanteoA4)
 			} else {
@@ -228,9 +245,7 @@
 			const end = text.indexOf('Tanteo Final')
 			const pointsSection = text.substring(start + 22, end)
 			const pointsArray = pointsSection.split('\n')
-
 			const cleanArray = removeABRows(pointsArray)
-
 			cleanArray.forEach((line, index) => {
 				const cleanLine = removeBreakLine(line)
 				if(index === 160 || !cleanLine.length) {
@@ -239,9 +254,24 @@
 				const indexFind = cleanLine.split(' ').filter(number => number == (index+1))
 				let players = null
 				if(indexFind.length > 2) {
+					if(!(Object.keys(pointsA).includes(index+1) &&
+						cleanLine.length == 3 &&
+						cleanLine.filter(el => el == (index+1)).length == 3)
+					) {
+						players = cleanLine.replace(' ' + (index+1) + ' ' + (index+1), ',').split(',')
+						return
+					}
 					if(!cleanLine.indexOf((index+1))) {
 						players = cleanLine.replace(' ' + (index+1) + ' ' + (index+1), ',').split(',')
-					} else {
+					}
+					if(Object.keys(pointsB).includes(index+1) &&
+						cleanLine.length == 3 &&
+						cleanLine.filter(el => el == (index+1)).length == 3
+					) {
+						players = cleanLine.replace((index+1) + ' ' + (index+1) + ' ', ',').split(',')
+						return
+					}
+					if(cleanLine.indexOf((index+1))) {
 						players = cleanLine.replace((index+1) + ' ' + (index+1) + ' ', ',').split(',')
 					}
 				} else {
@@ -252,15 +282,14 @@
 
 				if(playerA) {
 					if(!pointsA[playerA]) pointsA[playerA] = 0
-
-					pointsA[playerA] += parseInt(index) - lastPointA
-					lastPointA = parseInt(index)
+					pointsA[playerA] += parseInt(index + 1) - lastPointA
+					lastPointA = parseInt(index + 1)
 				}
 				if(playerB) {
 					if(!pointsB[playerB]) pointsB[playerB] = 0
 
-					pointsB[playerB] += parseInt(index) - lastPointB
-					lastPointB = parseInt(index)
+					pointsB[playerB] += parseInt(index + 1) - lastPointB
+					lastPointB = parseInt(index + 1)
 				}
 			})
 		}
@@ -273,7 +302,7 @@
 			const biggestAnotationB = biggestAnotation(pointsB)
 
 			Object.keys(pointsA).forEach(number => {
-				if(playersA[number].length) {
+				if(playersA[number] && playersA[number].length) {
 					let pointsPlayer = pointsA[number]
 					if(pointsA[number] == biggestAnotationA) {
 						pointsPlayer = boldString(pointsPlayer.toString())
@@ -281,13 +310,15 @@
 					finalText += `<h6>${number} <span style="font-weight:400">${playersA[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 				}
 			})
+			const totalSumA = Object.values(pointsA).reduce((a,b) => a+b, 0)
+			finalText += `<h6>Total: ${totalSumA}</h6>`
 
 			finalText += '<br>'
 			finalText += `<h5>Anotación ${equipo2}</h5>`
 			finalText += '<br>'
 
 			Object.keys(pointsB).forEach(number => {
-				if(playersB[number].length) {
+				if(playersB[number] && playersB[number].length) {
 					let pointsPlayer = pointsB[number]
 					if(pointsB[number] == biggestAnotationB) {
 						pointsPlayer = boldString(pointsPlayer.toString())
@@ -295,6 +326,8 @@
 					finalText += `<h6>${number} <span style="font-weight:400">${playersB[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 				}
 			})
+			const totalSumB = Object.values(pointsB).reduce((a,b) => a+b, 0)
+			finalText += `<h6>Total: ${totalSumB}</h6>`
 		}
 
 		const removeABRows = array => {
@@ -332,9 +365,11 @@
 	<style>
 		.loading-background {
 			display: none;
-			position: absolute;
+			position: fixed;
 			top: 0;
+			bottom: 0;
 			left: 0;
+			right: 0;
 			width: 100%;
 			height: 100%;
 			background: rgba(0,0,0,.2);
