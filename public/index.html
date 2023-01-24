@@ -9,8 +9,10 @@
 	<title>FBCV Acta Reader</title>
 </head>
 <body style="display: flex;flex-direction: column;align-items: center;padding:25px;text-align:center;">
-	<h2 style="margin-top:30px;"><a href="https://www.pdfforge.org/online/en/extract-text" target="_blank">Pulsa aquí</a> para convertir tu acta en un archivo de texto.</h2>
-	<h3>Una vez descargado el archivo, vuelve a esta página para subir el archivo y mostrar los datos.</h3>
+	<div class="loading-background">
+		<div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+	</div>
+	<img src="\assets\FBCV.png" alt="Acta Reader logo">
 	<input type="file" id="inpFile" class="form-control" style="max-width:400px;margin-top:50px;">
 	<br>
 	<br>
@@ -49,21 +51,48 @@
 		inpFile.onchange = async () => {
 			finalText = ''
 			resultText.innerHTML = ''
+			showLoading()
+			const fileUpload = await fetch(`https://api.pdf.co/v1/file/upload/get-presigned-url?name=${inpFile.files[0].name}&contentType=application/pdf`, {
+				method: 'GET',
+				headers: {
+					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
+				}
+			})
+			const fileUploadObject = await fileUpload.json()
 
-			const formData = new FormData()
-
-			formData.append('file', inpFile.files[0])
-
-			const response = await fetch('/extract-text', {
-				method: 'POST',
-				body: formData
+			const storeFile = await fetch(fileUploadObject.presignedUrl, {
+				method: 'PUT',
+				headers: {
+					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1'
+				},
+				body: inpFile.files[0]
 			})
 
-			const textResponse = await response.text()
+			const requestBody = {
+				url: fileUploadObject.url,
+				name: 'Acta.txt'
+			}
+
+			const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/text-simple', {
+				method: 'POST',
+				body: JSON.stringify(requestBody),
+				headers: {
+					'x-api-key': 'borja.rodrigo@voicemod.net_c442c629f06eb1c029c6477f37fb481e658de0c3cc3b365235a5434d55f7238ae3b22cf1',
+					'Content-Type': 'application/json'
+				}
+			})
+
+			const responseData = await response.json()
+			const responseFileURL = responseData.url
+			const textFile = await fetch(responseData.url)
+			const file = await textFile.blob()
+
+			const textResponse = await file.text()
 			const cleanResponse = await textResponse.replaceAll('X','')
 
 			formatResponse(cleanResponse)
 			resultText.innerHTML = finalText
+			hideLoading()
 		}
 
 		const logTeamNames = text => {
@@ -200,23 +229,23 @@
 			const cleanArray = removeABRows(pointsArray)
 
 			cleanArray.forEach((line, index) => {
-				if(index === 160) {
+				const cleanLine = removeBreakLine(line)
+				if(index === 160 || !cleanLine.length) {
 					return
 				}
-				const indexFind = line.split(' ').filter(number => number == (index+1))
+				const indexFind = cleanLine.split(' ').filter(number => number == (index+1))
 				let players = null
 				if(indexFind.length > 2) {
-					if(!line.indexOf((index+1))) {
-						players = line.replace(' ' + (index+1) + ' ' + (index+1), ',').split(',')
+					if(!cleanLine.indexOf((index+1))) {
+						players = cleanLine.replace(' ' + (index+1) + ' ' + (index+1), ',').split(',')
 					} else {
-						players = line.replace((index+1) + ' ' + (index+1) + ' ', ',').split(',')
+						players = cleanLine.replace((index+1) + ' ' + (index+1) + ' ', ',').split(',')
 					}
 				} else {
-					players = line.replace((index+1) + ' ' + (index+1), ',').split(',')
+					players = cleanLine.replace((index+1) + ' ' + (index+1), ',').split(',')
 				}
 				const playerA = players[0].length ? players[0].trim() : null
 				const playerB = players[1].length ? players[1].trim() : null
-
 
 				if(playerA) {
 					if(!pointsA[playerA]) pointsA[playerA] = 0
@@ -241,11 +270,13 @@
 			const biggestAnotationB = biggestAnotation(pointsB)
 
 			Object.keys(pointsA).forEach(number => {
-				let pointsPlayer = pointsA[number]
-				if(pointsA[number] == biggestAnotationA) {
-					pointsPlayer = boldString(pointsPlayer.toString())
+				if(playersA[number].length) {
+					let pointsPlayer = pointsA[number]
+					if(pointsA[number] == biggestAnotationA) {
+						pointsPlayer = boldString(pointsPlayer.toString())
+					}
+					finalText += `<h6>${number} <span style="font-weight:400">${playersA[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 				}
-				finalText += `<h6>${number} <span style="font-weight:400">${playersA[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 			})
 
 			finalText += '<br>'
@@ -253,18 +284,20 @@
 			finalText += '<br>'
 
 			Object.keys(pointsB).forEach(number => {
-				let pointsPlayer = pointsB[number]
-				if(pointsB[number] == biggestAnotationB) {
-					pointsPlayer = boldString(pointsPlayer.toString())
+				if(playersB[number].length) {
+					let pointsPlayer = pointsB[number]
+					if(pointsB[number] == biggestAnotationB) {
+						pointsPlayer = boldString(pointsPlayer.toString())
+					}
+					finalText += `<h6>${number} <span style="font-weight:400">${playersB[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 				}
-				finalText += `<h6>${number} <span style="font-weight:400">${playersB[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
 			})
 		}
 
 		const removeABRows = array => {
 			let i = 0;
 			while (i < array.length) {
-				if (array[i] === 'A B') {
+				if (array[i] === 'A B\r' || array[i] === '\r') {
 					array.splice(i, 1);
 				} else {
 					++i;
@@ -273,6 +306,8 @@
 			return array;
 		}
 
+		const removeBreakLine = line => line.replace('\r','')
+
 		const boldString = str => str.replace(RegExp(str, 'g'), `<b>${str}</b>`);
 
 		const biggestAnotation = players => {
@@ -280,6 +315,106 @@
 
 			return Math.max(...max)
 		}
+
+		const showLoading = () => {
+			const loading = document.querySelector('.loading-background')
+			loading.style.display = 'block'
+		}
+
+		const hideLoading = () => {
+			const loading = document.querySelector('.loading-background')
+			loading.style.display = 'none'
+		}
 	</script>
+	<style>
+		.loading-background {
+			display: none;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0,0,0,.2);
+		}
+		.lds-spinner {
+			color: black;
+			display: inline-block;
+			position: absolute;
+			top: 35%;
+			width: 80px;
+			height: 80px;
+			}
+			.lds-spinner div {
+			transform-origin: 40px 40px;
+			animation: lds-spinner 1.2s linear infinite;
+			}
+			.lds-spinner div:after {
+			content: " ";
+			display: block;
+			position: absolute;
+			top: 3px;
+			left: 37px;
+			width: 6px;
+			height: 18px;
+			border-radius: 20%;
+			background: black;
+			}
+			.lds-spinner div:nth-child(1) {
+			transform: rotate(0deg);
+			animation-delay: -1.1s;
+			}
+			.lds-spinner div:nth-child(2) {
+			transform: rotate(30deg);
+			animation-delay: -1s;
+			}
+			.lds-spinner div:nth-child(3) {
+			transform: rotate(60deg);
+			animation-delay: -0.9s;
+			}
+			.lds-spinner div:nth-child(4) {
+			transform: rotate(90deg);
+			animation-delay: -0.8s;
+			}
+			.lds-spinner div:nth-child(5) {
+			transform: rotate(120deg);
+			animation-delay: -0.7s;
+			}
+			.lds-spinner div:nth-child(6) {
+			transform: rotate(150deg);
+			animation-delay: -0.6s;
+			}
+			.lds-spinner div:nth-child(7) {
+			transform: rotate(180deg);
+			animation-delay: -0.5s;
+			}
+			.lds-spinner div:nth-child(8) {
+			transform: rotate(210deg);
+			animation-delay: -0.4s;
+			}
+			.lds-spinner div:nth-child(9) {
+			transform: rotate(240deg);
+			animation-delay: -0.3s;
+			}
+			.lds-spinner div:nth-child(10) {
+			transform: rotate(270deg);
+			animation-delay: -0.2s;
+			}
+			.lds-spinner div:nth-child(11) {
+			transform: rotate(300deg);
+			animation-delay: -0.1s;
+			}
+			.lds-spinner div:nth-child(12) {
+			transform: rotate(330deg);
+			animation-delay: 0s;
+			}
+			@keyframes lds-spinner {
+			0% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0;
+			}
+			}
+	</style>
 </body>
 </html>
