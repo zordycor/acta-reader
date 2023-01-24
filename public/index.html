@@ -297,7 +297,7 @@
 
 		const showPointsByTeam = text => {
 			finalText += '<br>'
-			finalText += '<div class="anotacion" style="display: flex;justify-content: space-between;">'
+			finalText += '<div class="anotacion">'
 			finalText += '<div class="anotacion-equipo1">'
 			finalText += `<h5>Anotación ${equipo1}</h5>`
 			finalText += '<br>'
@@ -368,6 +368,15 @@
 		}
 	</script>
 	<style>
+		.anotacion {
+			display: flex;
+			justify-content: space-between;
+		}
+		@media (max-width: 600px) {
+			.anotacion {
+				display: block;
+			}
+			}
 		.loading-background {
 			display: none;
 			position: fixed;
