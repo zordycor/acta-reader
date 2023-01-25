@@ -1,0 +1,35 @@
+@import 'lds-spinner.css';
+
+.anotacion {
+	display: flex;
+	justify-content: space-evenly;
+}
+
+.loading-background {
+	display: none;
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0,0,0,.2);
+}
+
+#myProgress {
+	width: 100%;
+	background-color: #ddd;
+}
+
+#myBar {
+	width: 1%;
+	height: 5px;
+	background-color: #F35628;
+}
+
+@media (max-width: 600px) {
+	.anotacion {
+		display: block;
+	}
+}
