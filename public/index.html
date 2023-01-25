@@ -10,26 +10,37 @@
 	<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 	<title>FBCV Acta Reader</title>
 </head>
-<body style="display: flex;flex-direction: column;align-items: center;padding:25px;text-align:center;">
+<body>
 	<div class="loading-background">
-		<div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+		<div class="lds-spinner">
+			<div></div><div></div>
+			<div></div><div></div>
+			<div></div><div></div>
+			<div></div><div></div>
+			<div></div><div></div>
+			<div></div><div></div>
+		</div>
 		<div id="myProgress">
 			<div id="myBar"></div>
 		</div>
 	</div>
-	<img src="\assets\FBCV.png" style="width:400px" alt="Acta Reader logo">
-	<label for="inpFile" style="max-width:600px;margin-top:50px;">Sube el archivo PDF del acta del partido para mostrar los datos:
-		<input type="file" id="inpFile" class="form-control" style="margin:25px 0 10px">
+	<img src="\assets\FBCV.png" class="logo" alt="Acta Reader logo">
+	<label for="inpFile" class="file-input">Sube el archivo PDF del acta del partido para mostrar los datos:
+		<input type="file" id="inpFile" class="form-control">
 	</label>
-	<p style="font-size:12px; color: darkgrey">Solo disponible para actas de categoría Senior</p>
+	<p class="category-warning">Solo disponible para actas de categoría Senior</p>
 	<br>
 	<br>
-	<div style="width:95%;height:600px;font-size:16px;border:1px solid black;outline:none;overflow:auto;padding:25px;text-align:left;border-radius: 12px;" id="resultText">
-		<p style="color:darkgrey">- Obten los puntos anotados por cada jugador</p>
-		<p style="color:darkgrey">- Mejor visualización del tanteo por cuartos</p>
-		<p style="color:darkgrey">- Ganador del partido más visible</p>
+	<div class="result-container" id="resultText">
+		<ul class="list">
+			<li class="darkgrey-text list-element">Obten los puntos anotados por cada jugador</li>
+			<li class="darkgrey-text list-element">Mejor visualización del tanteo por cuartos</li>
+			<li class="darkgrey-text list-element">Ganador del partido más visible</li>
+		</ul>
 	</div>
-	<p style="color: darkgrey; font-size:12px">Ayudanos a mejorar esta herramienta aportando tus ideas <a href="mailto:actareader@gmail.com" target="_blank">escribiéndonos un mail</a>.</p>
+	<p class="darkgrey-text help-text">
+		Ayudanos a mejorar esta herramienta aportando tus ideas <a href="mailto:actareader@gmail.com" target="_blank">escribiéndonos un mail</a>.
+	</p>
 
 	<script src="script.js" type="module"></script>
 </body>

@@ -54,7 +54,7 @@ inpFile.onchange = async () => {
 	} catch (error) {
 		console.error(error.message);
 		resultText.innerHTML = `
-			<p style="background: indianred;color: darkred;border-radius: 20px;padding: 10px 30px;display: initial;margin-left: 34%;">
+			<p class="error-text">
 				Ha ocurrido un error, inténtalo de nuevo más tarde.
 			</p>
 		`
@@ -94,7 +94,7 @@ const logTanteo = text => {
 	} else {
 		tanteoB1 = boldString(tanteoB1)
 	}
-	finalText += `<h5 style="font-weight:400">1r cuarto: ${tanteoA1} - ${tanteoB1}</h5>`
+	finalText += `<h5 class="slim-font">1r cuarto: ${tanteoA1} - ${tanteoB1}</h5>`
 
 	let tanteoA2 = periodoPoints1[3]
 	let tanteoB2 = periodoPoints1[4]
@@ -103,7 +103,7 @@ const logTanteo = text => {
 	} else {
 		tanteoB2 = boldString(tanteoB2)
 	}
-	finalText += `<h5 style="font-weight:400">2º cuarto: ${tanteoA2} - ${tanteoB2}</h5>`
+	finalText += `<h5 class="slim-font">2º cuarto: ${tanteoA2} - ${tanteoB2}</h5>`
 
 	const indexTanteo2 = text.indexOf("Periodo 3")
 	const endTanteo2 = text.indexOf("Periodo E")
@@ -116,7 +116,7 @@ const logTanteo = text => {
 	} else {
 		tanteoB3 = boldString(tanteoB3)
 	}
-	finalText += `<h5 style="font-weight:400">3r cuarto: ${tanteoA3} - ${tanteoB3}</h5>`
+	finalText += `<h5 class="slim-font">3r cuarto: ${tanteoA3} - ${tanteoB3}</h5>`
 
 	let tanteoA4 = periodoPoints2[4]
 	let tanteoB4 = periodoPoints2[5]
@@ -125,7 +125,7 @@ const logTanteo = text => {
 	} else {
 		tanteoB4 = boldString(tanteoB4)
 	}
-	finalText += `<h5 style="font-weight:400">4º cuarto: ${tanteoA4} - ${tanteoB4}</h5>`
+	finalText += `<h5 class="slim-font">4º cuarto: ${tanteoA4} - ${tanteoB4}</h5>`
 
 	const indexTanteoE = text.indexOf("Periodo E") + 10
 
@@ -137,7 +137,7 @@ const logTanteo = text => {
 		} else {
 			tanteoBE = boldString(tanteoBE)
 		}
-		finalText += `<h5 style="font-weight:400">Prórroga: ${tanteoAE} - ${tanteoBE}</h5>`
+		finalText += `<h5 class="slim-font">Prórroga: ${tanteoAE} - ${tanteoBE}</h5>`
 	}
 }
 
@@ -263,7 +263,7 @@ const showPointsByTeam = () => {
 			if(pointsA[number] == biggestAnotationA) {
 				pointsPlayer = boldString(pointsPlayer.toString())
 			}
-			finalText += `<h6>${number} <span style="font-weight:400">${playersA[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
+			finalText += `<h6>${number} <span class="slim-font">${playersA[number]}</span>: <span class="player-points">${pointsPlayer}</span></h6>`
 		}
 	})
 	const totalSumA = Object.values(pointsA).reduce((a,b) => a+b, 0)
@@ -280,7 +280,7 @@ const showPointsByTeam = () => {
 			if(pointsB[number] == biggestAnotationB) {
 				pointsPlayer = boldString(pointsPlayer.toString())
 			}
-			finalText += `<h6>${number} <span style="font-weight:400">${playersB[number]}</span>: <span style="font-size:20px">${pointsPlayer}</span></h6>`
+			finalText += `<h6>${number} <span class="slim-font">${playersB[number]}</span>: <span class="player-points">${pointsPlayer}</span></h6>`
 		}
 	})
 	const totalSumB = Object.values(pointsB).reduce((a,b) => a+b, 0)
