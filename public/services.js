@@ -1,4 +1,4 @@
-const apiKey = 'zordycorak@gmail.com_058c83c487644a49a3f7fa2ae7a1cebd43f84daa703b968a628d2dd7f1c14bb1e7b99acc'
+const apiKey = 'borjarodrigomarti@gmail.com_07b7105544b10a37055eea414b51cee176aba196f759c91b23bb49d6853d8fffd7dffeb5'
 
 const getPresignedUrl = async (fileName) => {
 	const response = await fetch(`https://api.pdf.co/v1/file/upload/get-presigned-url?name=${fileName}&contentType=application/pdf`, {

@@ -18,12 +18,13 @@ body {
 }
 
 .error-text {
-	background: indianred;
-	color: darkred;
+	display: flex;
+    text-align: center;
+    justify-content: space-around;
 	border-radius: 20px;
 	padding: 10px 30px;
-	display: initial;
-	margin-left: 34%;
+	color: darkred;
+	background: indianred;
 }
 
 .list {
@@ -107,7 +108,7 @@ body {
 	background-color: #ddd;
 }
 
-#myBar {
+#loadingBar {
 	width: 1%;
 	height: 5px;
 	background-color: #F35628;
